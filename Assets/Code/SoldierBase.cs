@@ -7,8 +7,31 @@ public abstract class SoldierBase : Damageable
     public GameObject EnemyStronghold;
     public int Damage;
     public int Value;
-    // Update is called once per frame
-    void Update()
+
+    public Vector2 Destination;
+    public GameObject Target;
+    protected override void Start()
+    {
+        base.Start();
+        GameObject[] Strongholds = GameObject.FindGameObjectsWithTag("Stronghold");
+        foreach(GameObject Base in Strongholds)
+        {
+            Stronghold BaseCode = Base.GetComponent<Stronghold>();
+            if (BaseCode != null)
+            {
+                if(BaseCode.Team == Team)
+                {
+                    HomeBase = Base;
+                }
+                else
+                {
+                    EnemyStronghold = Base;
+                }
+            }
+        }
+
+    }
+    public void ChangeDestination()
     {
         
     }

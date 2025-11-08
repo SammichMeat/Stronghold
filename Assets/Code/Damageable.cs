@@ -2,7 +2,7 @@ using UnityEngine;
 
 public abstract class Damageable : MonoBehaviour
 {
-    public int Health;
+    public float Health;
     public int MaxHealth;
     public string Team;
     public float DamageResistance;
@@ -13,7 +13,7 @@ public abstract class Damageable : MonoBehaviour
     }
     public void TakeDamage(int damage)
     {
-        Health -= Mathf.RoundToInt(damage * (1 - DamageResistance));
+        Health -= damage * (1 - DamageResistance);
         if (Health < 0)
         {
             Die();
@@ -21,6 +21,10 @@ public abstract class Damageable : MonoBehaviour
         else if (Health > MaxHealth)
         {
             Health = MaxHealth;
+        }
+        else
+        {
+            //Adjust Health Bar
         }
     }
     public abstract void Die();
