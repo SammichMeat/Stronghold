@@ -132,7 +132,7 @@ GameObject:
   - component: {fileID: 223365437}
   m_Layer: 0
   m_Name: RedStronghold_0
-  m_TagString: Untagged
+  m_TagString: Stronghold
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -287,7 +287,7 @@ GameObject:
   - component: {fileID: 1332691196}
   m_Layer: 0
   m_Name: BlueStronghold_0
-  m_TagString: Untagged
+  m_TagString: Stronghold
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0

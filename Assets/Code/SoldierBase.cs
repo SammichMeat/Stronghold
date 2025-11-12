@@ -7,9 +7,12 @@ public abstract class SoldierBase : Damageable
     public GameObject EnemyStronghold;
     public int Damage;
     public int Value;
+    protected float AttackTimer;
+    public float AttackCoolDown;
 
-    public Vector2 Destination;
+    public Vector3 Destination;
     public GameObject Target;
+    public SpriteRenderer UnitCircle;
     protected override void Start()
     {
         base.Start();
@@ -29,11 +32,15 @@ public abstract class SoldierBase : Damageable
                 }
             }
         }
+        if(Team == "Blue")
+        {
+            UnitCircle.color = Color.cyan;
+        }
+        else if(Team == "Red")
+        {
+            UnitCircle.color = Color.red;
+        }
 
-    }
-    public void ChangeDestination()
-    {
-        
     }
     protected abstract void Attack();
     public override void Die()
