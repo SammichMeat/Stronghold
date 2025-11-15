@@ -10,6 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 6661350415276793589}
   - component: {fileID: 5878503528534545071}
+  - component: {fileID: 629649484648856651}
   m_Layer: 0
   m_Name: Archer
   m_TagString: Untagged
@@ -51,15 +52,16 @@ MonoBehaviour:
   MaxHealth: 100
   Team: 
   DamageResistance: 0
-  Class: 
+  Class: Ranger
   HomeBase: {fileID: 0}
   EnemyStronghold: {fileID: 0}
   Damage: 5
   Value: 0
-  AttackCoolDown: 2
+  AttackCoolDown: 1
   Destination: {x: 0, y: 0, z: 0}
   Target: {fileID: 0}
   UnitCircle: {fileID: 3132149678989933867}
+  MoveSpeed: 1
   RangedAttack: {fileID: 4302979219122448549, guid: 122e997506b9c4f4ca6c78b618ce667d, type: 3}
   SpawnSpot: {fileID: 7165794774766939688}
   BowParts:
@@ -69,6 +71,34 @@ MonoBehaviour:
   - {fileID: 4959182420923648306}
   - {fileID: 8127293502974091330}
   - {fileID: 5726234842108514781}
+  WanderRange: 1
+--- !u!50 &629649484648856651
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 448440723045939518}
+  m_BodyType: 0
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 0
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0
 --- !u!1 &4610340929992062746
 GameObject:
   m_ObjectHideFlags: 0
