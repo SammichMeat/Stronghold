@@ -7,7 +7,7 @@ public abstract class SoldierBase : Damageable
     public GameObject EnemyStronghold;
     public int Damage;
     public int Value;
-    protected float AttackTimer;
+    [SerializeField] protected float AttackTimer;
     public float AttackCoolDown;
 
     public Vector3 Destination;
@@ -51,7 +51,6 @@ public abstract class SoldierBase : Damageable
     }
     protected void LookAt(Vector2 point)
     {
-
         float angle = AngleBetweenPoints(point, transform.position);
         Quaternion targetRotation = Quaternion.Euler(new Vector3(0f, 0f, angle));
         transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime);
