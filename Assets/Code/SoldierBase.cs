@@ -13,6 +13,8 @@ public abstract class SoldierBase : Damageable
     public Vector3 Destination;
     public GameObject Target;
     public SpriteRenderer UnitCircle;
+    public float MoveSpeed;
+    protected Rigidbody2D rb;
     protected override void Start()
     {
         base.Start();
@@ -40,11 +42,22 @@ public abstract class SoldierBase : Damageable
         {
             UnitCircle.color = Color.red;
         }
-
+        rb = GetComponent<Rigidbody2D>();
     }
     protected abstract void Attack();
     public override void Die()
     {
         Destroy(gameObject);
+    }
+    protected void LookAt(Vector2 point)
+    {
+
+        float angle = AngleBetweenPoints(point, transform.position);
+        Quaternion targetRotation = Quaternion.Euler(new Vector3(0f, 0f, angle));
+        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime);
+    }
+    protected float AngleBetweenPoints(Vector2 a, Vector2 b)
+    {
+        return Mathf.Atan2(a.y - b.y, a.x - b.x) * Mathf.Rad2Deg;
     }
 }
