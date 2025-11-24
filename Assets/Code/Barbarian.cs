@@ -52,11 +52,11 @@ public class Barbarian : SoldierBase
     {
         if (Self.Health <= MaxHealth /2 && HelpTimer > 0 && inHelpRange == true)
         {
-            CallCleric();
+            //CallCleric(); See Below
         }
     }
 
-
+    /* Commented Out, Unity wants to do safe mode otherwise, still WIP
     public void CallCleric()
     {
 
@@ -79,7 +79,7 @@ public class Barbarian : SoldierBase
 
 
     }
-
+    */
 
     public void PatrolPoint() // Uses the Rangers currently, needs to be tweaked
     {
