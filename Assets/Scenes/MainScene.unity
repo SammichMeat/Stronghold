@@ -143,6 +143,10 @@ PrefabInstance:
       propertyPath: m_Color.r
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: 5878503528534545071, guid: 5e7e9ab7b9f976841bce1d1d6a232891, type: 3}
+      propertyPath: HomeBase
+      value: 
+      objectReference: {fileID: 1332691192}
     - target: {fileID: 6661350415276793589, guid: 5e7e9ab7b9f976841bce1d1d6a232891, type: 3}
       propertyPath: m_LocalPosition.x
       value: -7.135955
@@ -294,10 +298,12 @@ MonoBehaviour:
   DamageResistance: 0
   Soldiers: []
   UnitTypes:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  - {fileID: 3313351449082337695, guid: ba0cc0a814837b3489a83bee70317b9a, type: 3}
+  - {fileID: 448440723045939518, guid: 5e7e9ab7b9f976841bce1d1d6a232891, type: 3}
+  - {fileID: 3313351449082337695, guid: ba0cc0a814837b3489a83bee70317b9a, type: 3}
   Coins: 0
+  spawnTimer: 0
+  EnemyStronghold: {fileID: 0}
 --- !u!1001 &373117873
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -697,6 +703,10 @@ PrefabInstance:
     serializedVersion: 3
     m_TransformParent: {fileID: 0}
     m_Modifications:
+    - target: {fileID: 2466143490097743481, guid: ba0cc0a814837b3489a83bee70317b9a, type: 3}
+      propertyPath: HomeBase
+      value: 
+      objectReference: {fileID: 1332691192}
     - target: {fileID: 3313351449082337695, guid: ba0cc0a814837b3489a83bee70317b9a, type: 3}
       propertyPath: m_Name
       value: Barb
@@ -756,7 +766,10 @@ PrefabInstance:
     m_RemovedComponents: []
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
-    m_AddedComponents: []
+    m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 3313351449082337695, guid: ba0cc0a814837b3489a83bee70317b9a, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1869635273}
   m_SourcePrefab: {fileID: 100100000, guid: ba0cc0a814837b3489a83bee70317b9a, type: 3}
 --- !u!1 &1268984121
 GameObject:
@@ -945,16 +958,18 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 71e0b34d0c37a1b4581adb3b3931e261, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  Health: 500
+  Health: 499.3
   MaxHealth: 500
   Team: Blue
   DamageResistance: 0
   Soldiers: []
   UnitTypes:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  Coins: 0
+  - {fileID: 448440723045939518, guid: 5e7e9ab7b9f976841bce1d1d6a232891, type: 3}
+  - {fileID: 3313351449082337695, guid: ba0cc0a814837b3489a83bee70317b9a, type: 3}
+  - {fileID: 3313351449082337695, guid: ba0cc0a814837b3489a83bee70317b9a, type: 3}
+  Coins: 500
+  spawnTimer: 0
+  EnemyStronghold: {fileID: 223365437}
 --- !u!1 &1594370059
 GameObject:
   m_ObjectHideFlags: 0
@@ -17527,6 +17542,38 @@ Tilemap:
     e31: 0
     e32: 0
     e33: 1
+--- !u!1 &1869635269 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3313351449082337695, guid: ba0cc0a814837b3489a83bee70317b9a, type: 3}
+  m_PrefabInstance: {fileID: 1162696704}
+  m_PrefabAsset: {fileID: 0}
+--- !u!50 &1869635273
+Rigidbody2D:
+  serializedVersion: 5
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1869635269}
+  m_BodyType: 0
+  m_Simulated: 1
+  m_UseFullKinematicContacts: 0
+  m_UseAutoMass: 0
+  m_Mass: 1
+  m_LinearDamping: 0
+  m_AngularDamping: 0.05
+  m_GravityScale: 1
+  m_Material: {fileID: 0}
+  m_IncludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_ExcludeLayers:
+    serializedVersion: 2
+    m_Bits: 0
+  m_Interpolate: 0
+  m_SleepingMode: 1
+  m_CollisionDetection: 0
+  m_Constraints: 0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
