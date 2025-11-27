@@ -2,7 +2,7 @@ using UnityEngine;
 
 public abstract class SoldierBase : Damageable
 {
-    public string Class;
+    public string ClassType;
     public GameObject HomeBase;
     public GameObject EnemyStronghold;
     public int Damage;
