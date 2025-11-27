@@ -8,6 +8,7 @@ public class Ranger : SoldierBase
 {
     public GameObject RangedAttack;
     public Transform SpawnSpot;
+    public GameObject Bow;
     public GameObject[] BowParts;
     private int BowState;
     private GameObject Arrow;
@@ -29,11 +30,12 @@ public class Ranger : SoldierBase
     }
     private GameObject VisionCone()
     {
+        GameObject Closest = null;
         Ray2D[] VisionCone = new Ray2D[40];
         for(int i = 0; i < VisionCone.Length; i++)
         {
-            Debug.DrawRay(transform.position + transform.right/7, (transform.right * 5 + transform.up * (i - 20)/4), UnitCircle.color);
-            RaycastHit2D HitObject = Physics2D.Raycast(transform.position + transform.right/7, (transform.right * 5 + transform.up * (i - 20)/4), 5, UnitVision);
+            Debug.DrawRay(Bow.transform.position + Bow.transform.right/7, (Bow.transform.right * 5 + Bow.transform.up * (i - 20)/4), UnitCircle.color);
+            RaycastHit2D HitObject = Physics2D.Raycast(transform.position + Bow.transform.right/7, (Bow.transform.right * 5 + Bow.transform.up * (i - 20)/4), 5, UnitVision);
             if(HitObject)
             {
                 GameObject SeenObject = HitObject.collider.gameObject;
@@ -45,16 +47,32 @@ public class Ranger : SoldierBase
                         SeenObject = SeenObject.transform.parent.gameObject;
                         Seen = SeenObject.GetComponent<Damageable>();
                     }
-                    Debug.Log($"{gameObject.name} has seen {SeenObject.name}");
+                    //Debug.Log($"{gameObject.name} has seen {SeenObject.name}");
                     if (Seen == null)
                     {
                         continue;
                     }
                     if(Seen.Team != Team)
                     {
-                        WanderRange = Mathf.RoundToInt(Mathf.Min(WanderRange, Vector2.Distance(HomeBase.transform.position, SeenObject.transform.position)));
-                        Debug.Log($"{gameObject.name} Has spotted an enemy");
-                        return SeenObject;
+                        //Debug.Log($"{gameObject.name} Has spotted an enemy");
+                        Closest = ClosestChoice(SeenObject, Closest);
+                    }
+                    else if(SeenObject != HomeBase)
+                    {
+                        SoldierBase Ally = SeenObject.GetComponent<SoldierBase>();
+                        if(Vector2.Distance(transform.position, Ally.transform.position) < 2 && Target == null)
+                        {
+                            LookAt(transform.position + Bow.transform.right - Bow.transform.up);
+                        }
+                        if (Ally.ClassType.ToLower() != "cleric" && Ally.ClassType.ToLower() != "claric")
+                        {
+                            Closest = ClosestChoice(Ally.Target, Closest);
+                            if(Ally.ClassType.ToLower() == "ranger")
+                            {
+                                Ranger AllyR = SeenObject.GetComponent<Ranger>();
+                                RangeExpansion(AllyR);
+                            }
+                        }
                     }
                 }
                 catch(System.Exception e)
@@ -63,7 +81,11 @@ public class Ranger : SoldierBase
                 }
             }
         }
-        return null;
+        if (Closest != null)
+        {
+            WanderRange = Mathf.RoundToInt(Mathf.Min(WanderRange, Vector2.Distance(HomeBase.transform.position, Closest.transform.position)));
+        }
+        return Closest;
     }
     private void ActivePatrol()
     {
@@ -80,16 +102,20 @@ public class Ranger : SoldierBase
             else
             {
                 LookAt(Destination);
-                rb.linearVelocity = transform.right * MoveSpeed;
+                rb.linearVelocity = Bow.transform.right * MoveSpeed;
             }
         }
         else
         {
             Destination = Target.transform.position;
             LookAt(Target.transform.position);
-            if (Vector3.Distance(transform.position, Destination) > 3)
+            if (Vector2.Distance(transform.position, Destination) > 4)
             {
-                rb.linearVelocity = transform.right *  1.5f * MoveSpeed;
+                rb.linearVelocity = Bow.transform.right *  1.5f * MoveSpeed;
+            }
+            else if(Vector2.Distance(transform.position, Destination) < 2)
+            {
+                rb.linearVelocity = Bow.transform.right * -.5f * MoveSpeed;
             }
             else
             {
@@ -153,20 +179,20 @@ public class Ranger : SoldierBase
         int RNG = Random.Range(0, 2);
         if (RNG == 0)
         {
-            WandX += WanderRange/2f;
+            WandX += WanderRange / 2f;
         }
-        else if(RNG == 1)
+        else if (RNG == 1)
         {
-            WandX -= WanderRange/2f;
+            WandX -= WanderRange / 2f;
         }
         RNG = Random.Range(0, 3);
         if (RNG == 0)
         {
-            WandY += WanderRange /2f;
+            WandY += WanderRange / 2f;
         }
-        else if(RNG == 1)
+        else if (RNG == 1)
         {
-            WandY -= WanderRange /2f;
+            WandY -= WanderRange / 2f;
         }
         WandX = Mathf.Max(Mathf.Min(WandX, 10), -10);
         WandY = Mathf.Max(Mathf.Min(WandY, 5), -5);
@@ -180,5 +206,54 @@ public class Ranger : SoldierBase
         BowParts[BowState].SetActive(true);
         AttackTimer = -AttackCoolDown;
         Destroy(Arrow, 5);
+    }
+    public GameObject ClosestChoice(GameObject Object1, GameObject Object2)
+    {
+        if(Object1 == null)
+        {
+            return Object2;
+        }
+        else if(Object2 == null)
+        {
+            return Object1;
+        }
+        float Distance1 = Vector2.Distance(Object1.transform.position, transform.position);
+        float Distance2 = Vector2.Distance(Object2.transform.position, transform.position);
+        if(Distance1 < Distance2)
+        {
+            return Object1;
+        }
+        else
+        {
+            return Object2;
+        }
+    }
+    public void RangeExpansion(Ranger FriendlyRanger)
+    {
+        if(FriendlyRanger != null)
+        {
+            if(FriendlyRanger.WanderRange < WanderRange)
+            {
+                FriendlyRanger.RangeExpansion(this);
+            }
+            else
+            {
+                WanderRange = FriendlyRanger.WanderRange;
+            }
+        }
+    }
+    protected override void LookAt(Vector2 point)
+    {
+        float angle = AngleBetweenPoints(point, Bow.transform.position);
+        Quaternion targetRotation = Quaternion.Euler(new Vector3(0f, 0f, angle));
+        Bow.transform.rotation = Quaternion.Slerp(Bow.transform.rotation, targetRotation, Time.deltaTime);
+    }
+    public override void TakeDamage(int Dmg)
+    {
+        base.TakeDamage(Dmg);
+        if(Target != EnemyStronghold)
+        {
+            Destination = transform.position - Bow.transform.right;
+        }
     }
 }

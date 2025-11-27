@@ -11,7 +11,7 @@ public abstract class Damageable : MonoBehaviour
     {
         Health = MaxHealth;
     }
-    public void TakeDamage(int damage)
+    public virtual void TakeDamage(int damage)
     {
         Health -= damage * (1 - DamageResistance);
         if (Health < 0)

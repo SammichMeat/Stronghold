@@ -105,17 +105,21 @@ MonoBehaviour:
   MaxHealth: 150
   Team: 
   DamageResistance: 0
-  Class: Barbarian
+  ClassType: Barbarian
   HomeBase: {fileID: 0}
   EnemyStronghold: {fileID: 0}
   Damage: 0
   Value: 0
+  AttackTimer: 0
   AttackCoolDown: 0
   Destination: {x: 0, y: 0, z: 0}
   Target: {fileID: 0}
   UnitCircle: {fileID: 0}
   MoveSpeed: 1.5
+  Self: {fileID: 0}
   WanderRange: 1
+  BarbRange: 0
+  inHelpRange: 0
 --- !u!1 &6724839389844554637
 GameObject:
   m_ObjectHideFlags: 0
