@@ -5,28 +5,71 @@ using UnityEngine.SceneManagement;
 
 public class Stronghold : Damageable
 {
+    [Header("Soldier Management")]
     public List<GameObject> Soldiers = new List<GameObject>();
     public GameObject[] UnitTypes = new GameObject[3]; 
     // 0 = Barbarian, 1 = Ranger, 2 = Cleric
 
-    public int Coins;
+    [Header("Economy")]
+    public int Coins = 0;
+    public int CoinsPerSecond = 25;   // <--- ADDED: prevents coins from never increasing
 
-    public float spawnTimer = 0f;
-    private float nextSpawnTime = 0f;
+    [Header("Enemy")]
+    public Stronghold EnemyStronghold;
 
+    [Header("AI Weights")]
     private float W_barbarian = 0.5f;
     private float W_ranger = 0.3f;
     private float W_cleric = 0.2f;
 
-    public Stronghold EnemyStronghold;
+    private float spawnTimer = 0f;
+    private float nextSpawnTime = 0f;
+    public Transform SpawnPoint;
 
-    void Start()
+    private bool initialized = false;
+
+    // =========================================================
+    // INITIALIZATION
+    // =========================================================
+
+    private void Awake()
     {
-        ResetSpawnTimer();
+        ValidateUnitTypes();
     }
 
-    void Update()
+    private void Start()
     {
+        ResetSpawnTimer();
+        initialized = true;
+    }
+
+    private void ValidateUnitTypes()
+    {
+        for (int i = 0; i < UnitTypes.Length; i++)
+        {
+            if (UnitTypes[i] == null)
+            {
+                Debug.LogError($"❌ Stronghold '{name}' UnitTypes[{i}] is NOT assigned in Inspector.");
+            }
+            else if (UnitTypes[i].GetComponent<SoldierBase>() == null)
+            {
+                Debug.LogError($"❌ UnitTypes[{i}] on '{name}' does NOT contain a SoldierBase component.");
+            }
+        }
+    }
+
+    // =========================================================
+    // UPDATE LOOP
+    // =========================================================
+
+    private void Update()
+    {
+        if (!initialized) 
+            return; // prevents Update running before Start()
+
+        // Passive income
+        Coins += Mathf.RoundToInt(CoinsPerSecond * Time.deltaTime);
+
         spawnTimer += Time.deltaTime;
 
         if (spawnTimer >= nextSpawnTime)
@@ -47,11 +90,22 @@ public class Stronghold : Damageable
         SceneManager.LoadScene(0);
     }
 
+    // =========================================================
+    // SPAWNING
+    // =========================================================
+
     public void SpawnSoldier(GameObject unit)
     {
-        Soldiers.Add(unit);
-        var soldier = unit.GetComponent<SoldierBase>();
+        // Set soldier position to the spawn point
+        unit.transform.position = SpawnPoint.position;
+        unit.transform.rotation = SpawnPoint.rotation;
 
+        // Parent soldier under the spawn point object
+        unit.transform.SetParent(SpawnPoint);
+
+        Soldiers.Add(unit);
+
+        var soldier = unit.GetComponentInChildren<SoldierBase>();
         soldier.Team = Team;
         soldier.HomeBase = gameObject;
 
@@ -60,90 +114,117 @@ public class Stronghold : Damageable
 
     public void SpawnBarbarian()
     {
-        if (Coins >= UnitTypes[0].GetComponent<SoldierBase>().Value)
+        var cost = UnitTypes[0].GetComponent<SoldierBase>().Value;
+        if (Coins >= cost)
         {
-            SpawnSoldier(Instantiate(UnitTypes[0], transform));
+            var unit = Instantiate(UnitTypes[0]);
+            SpawnSoldier(unit);
         }
     }
 
     public void SpawnRanger()
     {
-        if (Coins >= UnitTypes[1].GetComponent<SoldierBase>().Value)
+        var cost = UnitTypes[1].GetComponent<SoldierBase>().Value;
+        if (Coins >= cost)
         {
-            SpawnSoldier(Instantiate(UnitTypes[1], transform));
+            var unit = Instantiate(UnitTypes[1]);
+            SpawnSoldier(unit);
         }
     }
 
     public void SpawnCleric()
     {
-        if (Coins >= UnitTypes[2].GetComponent<SoldierBase>().Value)
+        var cost = UnitTypes[2].GetComponent<SoldierBase>().Value;
+        if (Coins >= cost)
         {
-            SpawnSoldier(Instantiate(UnitTypes[2], transform));
+            var unit = Instantiate(UnitTypes[2]);
+            SpawnSoldier(unit);
         }
     }
-    //AI logic, not sure if it works yet
+
+    private bool CanAfford(int index)
+    {
+        return Coins >= UnitTypes[index].GetComponent<SoldierBase>().Value;
+    }
+
+    // =========================================================
+    // AI SYSTEM
+    // =========================================================
+
     private void AI_SpawnLogic()
     {
-        // Not enough coins for anything
-        int cheapestUnit = GetCheapestUnitCost();
-        if (Coins < cheapestUnit)
-        {
+        int cheapest = GetCheapestUnitCost();
+        if (Coins < cheapest)
             return;
-        }
 
         AdjustWeightsBasedOnGameState();
         NormalizeWeights();
 
-        float roll = Random.value; // 0–1
+        float roll = Random.value;
 
         if (roll < W_barbarian)
-        {
             SpawnBarbarian();
-        }
         else if (roll < W_barbarian + W_ranger)
-        {
             SpawnRanger();
-        }
         else
-        {
             SpawnCleric();
-        }
     }
 
     private int GetCheapestUnitCost()
     {
-        int b = UnitTypes[0].GetComponent<SoldierBase>().Value;
-        int r = UnitTypes[1].GetComponent<SoldierBase>().Value;
-        int c = UnitTypes[2].GetComponent<SoldierBase>().Value;
-        return Mathf.Min(b, r, c);
+        // Validate again just in case (prevents crashes)
+        for (int i = 0; i < UnitTypes.Length; i++)
+        {
+            if (UnitTypes[i] == null)
+            {
+                Debug.LogError($"❌ Stronghold UnitTypes[{i}] is NULL at runtime!");
+                return int.MaxValue;
+            }
+        }
+
+        int costB = UnitTypes[0].GetComponent<SoldierBase>().Value;
+        int costR = UnitTypes[1].GetComponent<SoldierBase>().Value;
+        int costC = UnitTypes[2].GetComponent<SoldierBase>().Value;
+
+        return Mathf.Min(costB, costR, costC);
     }
 
     private void AdjustWeightsBasedOnGameState()
     {
         float selfHP = Health / MaxHealth;
         float enemyHP = EnemyStronghold != null 
-            ? EnemyStronghold.Health / EnemyStronghold.MaxHealth
-            : 1f;
+                        ? EnemyStronghold.Health / EnemyStronghold.MaxHealth 
+                        : 1f;
 
-        // Low health → focus Barbarian (fight back)
+        // Low health → more offense 
         if (selfHP < 0.30f)
         {
             W_barbarian += 0.1f;
-            W_cleric -= 0.1f;
+            W_cleric = Mathf.Max(0.05f, W_cleric - 0.1f);
         }
 
-        // Enemy base nearly dead → Rangers do clean-up
+        // Enemy nearly dead → more ranger damage
         if (enemyHP < 0.40f)
         {
             W_ranger += 0.1f;
-            W_barbarian -= 0.05f;
-            W_cleric -= 0.05f;
+            W_barbarian = Mathf.Max(0.05f, W_barbarian - 0.05f);
+            W_cleric = Mathf.Max(0.05f, W_cleric - 0.05f);
         }
     }
 
     private void NormalizeWeights()
     {
         float total = W_barbarian + W_ranger + W_cleric;
+
+        if (total <= 0)
+        {
+            // Emergency reset (should never happen)
+            W_barbarian = 0.5f;
+            W_ranger = 0.3f;
+            W_cleric = 0.2f;
+            total = 1f;
+        }
+
         W_barbarian /= total;
         W_ranger    /= total;
         W_cleric    /= total;
