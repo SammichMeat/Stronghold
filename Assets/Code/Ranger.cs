@@ -24,6 +24,7 @@ public class Ranger : SoldierBase
 
     protected void Update()
     {
+        CallingHelp();
         ActivePatrol();
         AttackTimer += Time.deltaTime;
         AnimationStuff();
@@ -254,6 +255,15 @@ public class Ranger : SoldierBase
         if(Target != EnemyStronghold)
         {
             Destination = transform.position - Bow.transform.right;
+        }
+    }
+    //Calling help from the Cleric
+    public void CallingHelp()
+    {
+        if(gameObject.GetComponent<Damageable>().Health <= 25)
+        {
+            BroadcastMessage("Called", gameObject);
+            Debug.Log("Calling Help!");
         }
     }
 }
