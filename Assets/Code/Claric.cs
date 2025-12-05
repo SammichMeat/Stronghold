@@ -61,7 +61,14 @@ public class Claric : SoldierBase
     }
     public void Called(GameObject location)
     {
-        Target = location;
+        if(Target == null)
+        {
+            Target = location;
+        }
+        else if(location.GetComponent<Damageable>().Health < Target.GetComponent<Damageable>().Health)
+        {
+            Target = location;
+        }
         Debug.Log("GotCalled");
     }
     public void Heal(float activeHp, int maxHP)

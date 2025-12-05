@@ -262,7 +262,13 @@ public class Ranger : SoldierBase
     {
         if(gameObject.GetComponent<Damageable>().Health <= 25)
         {
-            BroadcastMessage("Called", gameObject);
+            foreach(GameObject Soldier in HomeBase.GetComponent<Stronghold>().Soldiers)
+            {
+                if(Soldier.GetComponent<SoldierBase>().ClassType == "Cleric")
+                {
+                    Soldier.BroadcastMessage("Called", gameObject);
+                }
+            }
             Debug.Log("Calling Help!");
         }
     }
