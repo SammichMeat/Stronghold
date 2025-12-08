@@ -1,26 +1,27 @@
-using NUnit.Framework;
 using UnityEngine;
-using System.Collections.Generic;
 using UnityEngine.SceneManagement;
-
+using System.Collections;
+using System.Collections.Generic;
 public class Stronghold : Damageable
 {
+    [Header("Control Settings")]
+    public bool PlayerControlled = false;
+
     [Header("Soldier Management")]
     public List<GameObject> Soldiers = new List<GameObject>();
     public GameObject[] UnitTypes = new GameObject[3]; 
-    // 0 = Barbarian, 1 = Ranger, 2 = Cleric
 
     [Header("Economy")]
     public int Coins = 0;
-    public int CoinsPerSecond = 25;   // <--- ADDED: prevents coins from never increasing
+    public int CoinsPerSecond = 25;
 
     [Header("Enemy")]
     public Stronghold EnemyStronghold;
 
-    [Header("AI Weights")]
-    private float W_barbarian = 0.5f;
-    private float W_ranger = 0.3f;
-    private float W_cleric = 0.2f;
+    [Header("AI Weights (Genetic Learning)")]
+    public float W_barbarian = 0.5f;
+    public float W_ranger    = 0.3f;
+    public float W_cleric    = 0.2f;
 
     private float spawnTimer = 0f;
     private float nextSpawnTime = 0f;
@@ -34,6 +35,7 @@ public class Stronghold : Damageable
 
     private void Awake()
     {
+        LoadWeightsFromMemory();
         ValidateUnitTypes();
     }
 
@@ -43,17 +45,35 @@ public class Stronghold : Damageable
         initialized = true;
     }
 
+    private void LoadWeightsFromMemory()
+    {
+        if (PlayerPrefs.HasKey("W_barbarian"))
+        {
+            W_barbarian = PlayerPrefs.GetFloat("W_barbarian");
+            W_ranger    = PlayerPrefs.GetFloat("W_ranger");
+            W_cleric    = PlayerPrefs.GetFloat("W_cleric");
+        }
+    }
+
+    private void SaveWeightsToMemory()
+    {
+        PlayerPrefs.SetFloat("W_barbarian", W_barbarian);
+        PlayerPrefs.SetFloat("W_ranger", W_ranger);
+        PlayerPrefs.SetFloat("W_cleric", W_cleric);
+        PlayerPrefs.Save();
+    }
+
     private void ValidateUnitTypes()
     {
         for (int i = 0; i < UnitTypes.Length; i++)
         {
             if (UnitTypes[i] == null)
             {
-                Debug.LogError($"❌ Stronghold '{name}' UnitTypes[{i}] is NOT assigned in Inspector.");
+                Debug.LogError($"Stronghold '{name}' UnitTypes[{i}] is NOT assigned!");
             }
             else if (UnitTypes[i].GetComponent<SoldierBase>() == null)
             {
-                Debug.LogError($"❌ UnitTypes[{i}] on '{name}' does NOT contain a SoldierBase component.");
+                Debug.LogError($"UnitTypes[{i}] on '{name}' does NOT contain SoldierBase.");
             }
         }
     }
@@ -64,11 +84,13 @@ public class Stronghold : Damageable
 
     private void Update()
     {
-        if (!initialized) 
-            return; // prevents Update running before Start()
+        if (!initialized)
+            return;
 
-        // Passive income
         Coins += Mathf.RoundToInt(CoinsPerSecond * Time.deltaTime);
+
+        if (PlayerControlled)
+            return; // Skip AI logic completely
 
         spawnTimer += Time.deltaTime;
 
@@ -85,10 +107,13 @@ public class Stronghold : Damageable
         nextSpawnTime = Random.Range(10f, 20f);
     }
 
-    public override void Die()
-    {
-        SceneManager.LoadScene(0);
-    }
+    // =========================================================
+    // PLAYER-CONTROLLED INPUT
+    // =========================================================
+
+    public void PlayerSpawnBarbarian() => SpawnBarbarian();
+    public void PlayerSpawnRanger()    => SpawnRanger();
+    public void PlayerSpawnCleric()    => SpawnCleric();
 
     // =========================================================
     // SPAWNING
@@ -96,12 +121,9 @@ public class Stronghold : Damageable
 
     public void SpawnSoldier(GameObject unit)
     {
-        // Set soldier position to the spawn point
         unit.transform.position = SpawnPoint.position;
         unit.transform.rotation = SpawnPoint.rotation;
-
-        // Parent soldier under the spawn point object
-        unit.transform.SetParent(SpawnPoint);
+        unit.transform.SetParent(null);
 
         Soldiers.Add(unit);
 
@@ -110,41 +132,60 @@ public class Stronghold : Damageable
         soldier.HomeBase = gameObject;
 
         Coins -= soldier.Value;
+
+        // start performance tracking
+        StartCoroutine(EvaluateSpawnPerformance(soldier));
     }
 
-    public void SpawnBarbarian()
+    private IEnumerator EvaluateSpawnPerformance(SoldierBase soldier)
     {
-        var cost = UnitTypes[0].GetComponent<SoldierBase>().Value;
-        if (Coins >= cost)
-        {
-            var unit = Instantiate(UnitTypes[0]);
-            SpawnSoldier(unit);
-        }
-    }
+        float startSelf = Health;
+        float startEnemy = EnemyStronghold.Health;
 
-    public void SpawnRanger()
-    {
-        var cost = UnitTypes[1].GetComponent<SoldierBase>().Value;
-        if (Coins >= cost)
-        {
-            var unit = Instantiate(UnitTypes[1]);
-            SpawnSoldier(unit);
-        }
-    }
+        yield return new WaitForSeconds(12f);
 
-    public void SpawnCleric()
-    {
-        var cost = UnitTypes[2].GetComponent<SoldierBase>().Value;
-        if (Coins >= cost)
+        float selfChange = Health - startSelf;
+        float enemyChange = startEnemy - EnemyStronghold.Health;
+
+        if (soldier is Barbarian)
         {
-            var unit = Instantiate(UnitTypes[2]);
-            SpawnSoldier(unit);
+            if (enemyChange > 0) W_barbarian += 0.03f;
+            if (selfChange < 0) W_barbarian -= 0.02f;
         }
+        else if (soldier is Ranger)
+        {
+            if (enemyChange > 0) W_ranger += 0.03f;
+            if (selfChange < 0) W_ranger -= 0.02f;
+        }
+        else if (soldier is Claric)
+        {
+            if (selfChange > 0) W_cleric += 0.03f;
+            if (enemyChange <= 0) W_cleric -= 0.02f;
+        }
+
+        NormalizeWeights();
+        SaveWeightsToMemory();
     }
 
     private bool CanAfford(int index)
     {
         return Coins >= UnitTypes[index].GetComponent<SoldierBase>().Value;
+    }
+
+    public void SpawnBarbarian()
+    {
+        if (CanAfford(0))
+            SpawnSoldier(Instantiate(UnitTypes[0]));
+    }
+    public void SpawnRanger()
+    {
+        if (CanAfford(1))
+            SpawnSoldier(Instantiate(UnitTypes[1]));
+    }
+    public void SpawnCleric()
+    {
+        if (CanAfford(2))
+            SpawnSoldier(Instantiate(UnitTypes[2]));
     }
 
     // =========================================================
@@ -157,7 +198,6 @@ public class Stronghold : Damageable
         if (Coins < cheapest)
             return;
 
-        AdjustWeightsBasedOnGameState();
         NormalizeWeights();
 
         float roll = Random.value;
@@ -172,16 +212,6 @@ public class Stronghold : Damageable
 
     private int GetCheapestUnitCost()
     {
-        // Validate again just in case (prevents crashes)
-        for (int i = 0; i < UnitTypes.Length; i++)
-        {
-            if (UnitTypes[i] == null)
-            {
-                Debug.LogError($"❌ Stronghold UnitTypes[{i}] is NULL at runtime!");
-                return int.MaxValue;
-            }
-        }
-
         int costB = UnitTypes[0].GetComponent<SoldierBase>().Value;
         int costR = UnitTypes[1].GetComponent<SoldierBase>().Value;
         int costC = UnitTypes[2].GetComponent<SoldierBase>().Value;
@@ -189,44 +219,27 @@ public class Stronghold : Damageable
         return Mathf.Min(costB, costR, costC);
     }
 
-    private void AdjustWeightsBasedOnGameState()
-    {
-        float selfHP = Health / MaxHealth;
-        float enemyHP = EnemyStronghold != null 
-                        ? EnemyStronghold.Health / EnemyStronghold.MaxHealth 
-                        : 1f;
-
-        // Low health → more offense 
-        if (selfHP < 0.30f)
-        {
-            W_barbarian += 0.1f;
-            W_cleric = Mathf.Max(0.05f, W_cleric - 0.1f);
-        }
-
-        // Enemy nearly dead → more ranger damage
-        if (enemyHP < 0.40f)
-        {
-            W_ranger += 0.1f;
-            W_barbarian = Mathf.Max(0.05f, W_barbarian - 0.05f);
-            W_cleric = Mathf.Max(0.05f, W_cleric - 0.05f);
-        }
-    }
-
     private void NormalizeWeights()
     {
         float total = W_barbarian + W_ranger + W_cleric;
 
-        if (total <= 0)
+        if (total == 0)
         {
-            // Emergency reset (should never happen)
             W_barbarian = 0.5f;
             W_ranger = 0.3f;
             W_cleric = 0.2f;
-            total = 1f;
+            total = 1;
         }
 
         W_barbarian /= total;
-        W_ranger    /= total;
-        W_cleric    /= total;
+        W_ranger /= total;
+        W_cleric /= total;
+    }
+
+    public override void Die()
+    {
+        SaveWeightsToMemory();
+        SceneManager.LoadScene(0);
     }
 }
+
