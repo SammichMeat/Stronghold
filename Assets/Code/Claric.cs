@@ -3,20 +3,21 @@ using UnityEngine;
 
 public class Claric : SoldierBase
 {
-    List<GameObject> Units = new List<GameObject>();
+    public List<GameObject> Units = new List<GameObject>();
     public Transform LookPointer;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     protected override void Start()
     {
-
         base.Start();
         ClassType = "claric";
         MoveSpeed = 2f;
         Units = HomeBase.GetComponent<Stronghold>().Soldiers;
+        Wander();
     }
     // Update is called once per frame
     void Update()
     {
+        AttackTimer += Time.deltaTime;
         Moving();
     }
     public override void Die()
@@ -25,28 +26,38 @@ public class Claric : SoldierBase
     }
     protected override void Attack() 
     {
-        Target.GetComponent<SoldierBase>().TakeDamage(-5);
+        if(AttackTimer > AttackCoolDown)
+        {
+            Target.GetComponent<SoldierBase>().TakeDamage(-5);
+            AttackTimer = -AttackCoolDown;
+            Debug.Log($"Healed {Target.name} to {Target.GetComponent<SoldierBase>().Health}HP");
+            if (Target.GetComponent<SoldierBase>().Health > Target.GetComponent<SoldierBase>().MaxHealth * .9f)
+            {
+                WeakestAlly();
+            }
+        }
     }
     public void Moving()
     {
+        WeakestAlly();
         if (Target == null)
         {
-            AttackTimer = 0;
             if (Vector3.Distance(transform.position, Destination) < .5f)
             {
                 rb.linearVelocity = Vector2.zero;
-                //PatrolPoint(); //Choose new destination
-                Target = Units[0];
+                Wander();
             }
             else
             {
                 LookAt(Destination);
-                rb.linearVelocity = LookPointer.transform.right * .75f * MoveSpeed;
+                rb.linearVelocity = LookPointer.transform.right * MoveSpeed * .5f;
             }
         }
         else
         {
             Destination = Target.transform.position;
+            Destination.x = Mathf.Max(Mathf.Min(Destination.x, 10), -10);
+            Destination.y = Mathf.Max(Mathf.Min(Destination.y, 5), -5);
             LookAt(Target.transform.position);
             if (Vector2.Distance(transform.position, Destination) > 1.5f)
             {
@@ -61,15 +72,23 @@ public class Claric : SoldierBase
     }
     public void Called(GameObject location)
     {
+        if(location == gameObject || location.GetComponent<SoldierBase>().Health > location.GetComponent<SoldierBase>().MaxHealth * .9f)
+        {
+            return;
+        }
         if(Target == null)
         {
             Target = location;
         }
-        else if(location.GetComponent<Damageable>().Health < Target.GetComponent<Damageable>().Health)
+        else if(Target != location)
         {
-            Target = location;
+            float StayWeight = (Target.GetComponent<SoldierBase>().Health / Target.GetComponent<SoldierBase>().MaxHealth * Target.GetComponent<SoldierBase>().Health + Vector2.Distance(transform.position, Target.transform.position) / 5);
+            float NewWeight = (location.GetComponent<SoldierBase>().Health / location.GetComponent<SoldierBase>().MaxHealth * location.GetComponent<SoldierBase>().Health + Vector2.Distance(transform.position, location.transform.position) / 5);
+            if(NewWeight < StayWeight)
+            {
+                Target = location;
+            }
         }
-        Debug.Log("GotCalled");
     }
     public void Heal(float activeHp, int maxHP)
     {
@@ -80,5 +99,23 @@ public class Claric : SoldierBase
         float angle = AngleBetweenPoints(point, LookPointer.transform.position);
         Quaternion targetRotation = Quaternion.Euler(new Vector3(0f, 0f, angle));
         LookPointer.transform.rotation = Quaternion.Slerp(LookPointer.transform.rotation, targetRotation, Time.deltaTime);
+    }
+    public void WeakestAlly()
+    {
+        foreach(GameObject Soldier in Units)
+        {
+            try
+            {
+                Called(Soldier);
+            }
+            catch(UnityEngine.MissingReferenceException)
+            {
+
+            }
+        }
+    }
+    public void Wander()
+    {
+        Destination = new Vector3(Random.Range(-3f, 3f), Random.Range(-3f, 3f), 0) + HomeBase.transform.position;
     }
 }

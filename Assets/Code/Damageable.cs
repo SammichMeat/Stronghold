@@ -3,9 +3,10 @@ using UnityEngine;
 public abstract class Damageable : MonoBehaviour
 {
     public float Health;
-    public int MaxHealth;
+    public float MaxHealth;
     public string Team;
     public float DamageResistance;
+    public Transform HealthBar;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     protected virtual void Start()
     {
@@ -24,7 +25,7 @@ public abstract class Damageable : MonoBehaviour
         }
         else
         {
-            //Adjust Health Bar
+            HealthBar.transform.localScale = new Vector3(Health/MaxHealth, 1, 1);
         }
     }
     public abstract void Die();

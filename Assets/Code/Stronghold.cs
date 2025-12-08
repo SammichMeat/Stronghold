@@ -1,43 +1,303 @@
-using NUnit.Framework;
 using UnityEngine;
-using System.Collections.Generic;
 using UnityEngine.SceneManagement;
+using System.Collections;
+using System.Collections.Generic;
+using TMPro;
 
 public class Stronghold : Damageable
 {
+    [Header("Control Settings")]
+    public bool PlayerControlled = false;
+    public GameObject ControlUI;
+    public bool IsControllable;
+    public TextMeshProUGUI CoinsText;
+    
+    [Header("Soldier Management")]
     public List<GameObject> Soldiers = new List<GameObject>();
-    public GameObject[] UnitTypes = new GameObject[3];
-    public int Coins;
-    public override void Die()
+    public GameObject[] UnitTypes = new GameObject[3]; 
+
+    [Header("Economy")]
+    public float Coins = 0;
+    public int CoinsPerSecond = 25;
+    private float seconds = 0;
+    private bool firstRun = true;
+
+    [Header("Enemy")]
+    public Stronghold EnemyStronghold;
+
+    [Header("AI Weights (Genetic Learning)")]
+    public float W_barbarian = 0.5f;
+    public float W_ranger    = 0.3f;
+    public float W_cleric    = 0.2f;
+
+    private float spawnTimer = 0f;
+    private float nextSpawnTime = 0f;
+    public Transform SpawnPoint;
+
+    private bool initialized = false;
+    
+
+    private void Awake()
     {
-        SceneManager.LoadScene(0);
-    }    
-    public void SpawnSoldier(GameObject Unit)
-    {
-        Soldiers.Add(Unit);
-        Unit.GetComponent<SoldierBase>().Team = Team;
-        Unit.GetComponent<SoldierBase>().HomeBase = gameObject;
-        Coins -= Unit.GetComponent<SoldierBase>().Value;
+        if (Team.Equals("Blue"))
+        {
+            Debug.Log("YEs");
+            PlayerControlled = true;
+            IsControllable = true;
+        }
+        LoadWeightsFromMemory();
+        ValidateUnitTypes();
+        if (IsControllable)
+        {
+            if (PlayerControlled)
+            {
+                ControlUI.SetActive(true);
+            }
+        }
+        else if (IsControllable)
+        {
+            if (!PlayerControlled)
+            {
+                ControlUI.SetActive(false);
+            }
+        }
     }
+
+    private void Start()
+    {
+        ResetSpawnTimer();
+        initialized = true;
+    }
+
+    private void LoadWeightsFromMemory()
+    {
+        if (PlayerPrefs.HasKey(Team+"W_barbarian"))
+        {
+            W_barbarian = PlayerPrefs.GetFloat(Team+"W_barbarian");
+            W_ranger    = PlayerPrefs.GetFloat(Team+"W_ranger");
+            W_cleric    = PlayerPrefs.GetFloat(Team+"W_cleric");
+        }
+    }
+
+    private void SaveWeightsToMemory()
+    {
+        PlayerPrefs.SetFloat(Team+"W_barbarian", W_barbarian);
+        PlayerPrefs.SetFloat(Team+"W_ranger", W_ranger);
+        PlayerPrefs.SetFloat(Team+"W_cleric", W_cleric);
+        PlayerPrefs.Save();
+    }
+
+    private void ValidateUnitTypes()
+    {
+        for (int i = 0; i < UnitTypes.Length; i++)
+        {
+            if (UnitTypes[i] == null)
+            {
+                Debug.LogError($"Stronghold '{name}' UnitTypes[{i}] is NOT assigned!");
+            }
+            else if (UnitTypes[i].GetComponent<SoldierBase>() == null)
+            {
+                Debug.LogError($"UnitTypes[{i}] on '{name}' does NOT contain SoldierBase.");
+            }
+        }
+    }
+
+    private void Update()
+    {
+        if (!initialized)
+            return;
+        
+        Coins += CoinsPerSecond * Time.deltaTime;
+  
+        if ((IsControllable && CoinsText != null && (Mathf.FloorToInt(Coins) % 5 == 0)) || (firstRun&&PlayerControlled))
+        {
+            UpdateCoinsText();
+            firstRun = false;
+        }
+
+        if (IsControllable&&Input.GetKeyDown(KeyCode.Space))
+        {
+            ControlUI.SetActive(!ControlUI.activeSelf);
+            PlayerControlled = !PlayerControlled;
+        }
+        
+        if (PlayerControlled)
+            return;
+
+        spawnTimer += Time.deltaTime;
+
+        if (spawnTimer >= nextSpawnTime)
+        {
+            AI_SpawnLogic();
+            ResetSpawnTimer();
+        }
+    }
+
+    private void UpdateCoinsText()
+    {
+        CoinsText.text = "Player(Blue) Coins: " + Mathf.FloorToInt(Coins);
+    }
+
+    
+    private void ResetSpawnTimer()
+    {
+        spawnTimer = 0f;
+        nextSpawnTime = Random.Range(5f, 11f);//Spawn Timer
+    }
+    
+
+    public void PlayerSpawnBarbarian()
+    {
+        SpawnBarbarian();
+        UpdateCoinsText();
+    }
+
+    public void PlayerSpawnRanger()
+    {
+        SpawnRanger();
+        UpdateCoinsText();
+    }
+
+    public void PlayerSpawnCleric()
+    {
+        SpawnCleric();
+        UpdateCoinsText();
+    }
+
+    public int ReadBarbWeight()
+    {
+        return PlayerPrefs.GetInt(Team+" Stronghold Cleric Spawn Weight: "+Team+"W_barbarian");
+    }
+    public int ReadArcherWeight()
+    {
+        return PlayerPrefs.GetInt(Team+" Stronghold Ranger Spawn Weight: "+Team+"W_ranger");
+    }
+
+    public int ReadClericWeight()
+    {
+        return PlayerPrefs.GetInt(Team+" Stronghold Cleric Spawn Weight: "+Team+"W_cleric");
+    }
+
+
+    //spawning
+    public void SpawnSoldier(GameObject unit)
+    {
+        unit.transform.position = SpawnPoint.position;
+        unit.transform.rotation = SpawnPoint.rotation;
+        unit.transform.SetParent(null);
+
+        Soldiers.Add(unit);
+
+        var soldier = unit.GetComponentInChildren<SoldierBase>();
+        soldier.Team = Team;
+        soldier.HomeBase = gameObject;
+
+        Coins -= soldier.Value;
+
+        // start performance tracking
+        StartCoroutine(EvaluateSpawnPerformance(soldier));
+    }
+
+    private IEnumerator EvaluateSpawnPerformance(SoldierBase soldier)
+    {
+        float startSelf = Health;
+        float startEnemy = EnemyStronghold.Health;
+
+        yield return new WaitForSeconds(12f);
+
+        float selfChange = Health - startSelf;
+        float enemyChange = startEnemy - EnemyStronghold.Health;
+
+        if (soldier is Barbarian)
+        {
+            if (enemyChange > 0) W_barbarian += 0.03f;
+            if (selfChange < 0) W_barbarian -= 0.02f;
+        }
+        else if (soldier is Ranger)
+        {
+            if (enemyChange > 0) W_ranger += 0.03f;
+            if (selfChange < 0) W_ranger -= 0.02f;
+        }
+        else if (soldier is Claric)
+        {
+            if (selfChange > 0) W_cleric += 0.03f;
+            if (enemyChange <= 0) W_cleric -= 0.02f;
+        }
+
+        NormalizeWeights();
+        SaveWeightsToMemory();
+    }
+
+    private bool CanAfford(int index)
+    {
+        return Coins >= UnitTypes[index].GetComponent<SoldierBase>().Value;
+    }
+
     public void SpawnBarbarian()
     {
-        if (UnitTypes[0].GetComponent<SoldierBase>().Value >= Coins)
-        {
-            SpawnSoldier(Instantiate(UnitTypes[0], transform) as GameObject);
-        }
-    }
-    public void SpawnCleric()
-    {
-        if (UnitTypes[0].GetComponent<SoldierBase>().Value >= Coins)
-        {
-            SpawnSoldier(Instantiate(UnitTypes[2], transform) as GameObject);
-        }
+        if (CanAfford(0))
+            SpawnSoldier(Instantiate(UnitTypes[0]));
     }
     public void SpawnRanger()
     {
-        if (UnitTypes[0].GetComponent<SoldierBase>().Value >= Coins)
+        if (CanAfford(1))
+            SpawnSoldier(Instantiate(UnitTypes[1]));
+    }
+    public void SpawnCleric()
+    {
+        if (CanAfford(2))
+            SpawnSoldier(Instantiate(UnitTypes[2]));
+    }
+
+    
+    //AI
+    private void AI_SpawnLogic()
+    {
+        int cheapest = GetCheapestUnitCost();
+        if (Coins < cheapest)
+            return;
+
+        NormalizeWeights();
+
+        float roll = Random.value;
+
+        if (roll < W_barbarian)
+            SpawnBarbarian();
+        else if (roll < W_barbarian + W_ranger)
+            SpawnRanger();
+        else
+            SpawnCleric();
+    }
+
+    private int GetCheapestUnitCost()
+    {
+        int costB = UnitTypes[0].GetComponent<SoldierBase>().Value;
+        int costR = UnitTypes[1].GetComponent<SoldierBase>().Value;
+        int costC = UnitTypes[2].GetComponent<SoldierBase>().Value;
+
+        return Mathf.Min(costB, costR, costC);
+    }
+
+    private void NormalizeWeights()
+    {
+        float total = W_barbarian + W_ranger + W_cleric;
+
+        if (total == 0)
         {
-            SpawnSoldier(Instantiate(UnitTypes[1], transform) as GameObject);
+            W_barbarian = 0.5f;
+            W_ranger = 0.3f;
+            W_cleric = 0.2f;
+            total = 1;
         }
+
+        W_barbarian /= total;
+        W_ranger /= total;
+        W_cleric /= total;
+    }
+
+    public override void Die()
+    {
+        SaveWeightsToMemory();
+        SceneManager.LoadScene(0);
     }
 }

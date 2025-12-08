@@ -43,12 +43,16 @@ public class Arrow : MonoBehaviour
                 }
                 if (Victim != null && Victim.Team != Team)
                 {
-                    Debug.Log($"Arrow hit {Hit.name}");
+                    //Debug.Log($"Arrow hit {Hit.name}");
                     Victim.TakeDamage(DMG);
                     Destroy(gameObject);
                 }
             }
             catch(System.NullReferenceException)
+            {
+
+            }
+            catch(UnityEngine.MissingReferenceException)
             {
 
             }

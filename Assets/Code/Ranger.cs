@@ -24,7 +24,6 @@ public class Ranger : SoldierBase
 
     protected void Update()
     {
-        CallingHelp();
         ActivePatrol();
         AttackTimer += Time.deltaTime;
         AnimationStuff();
@@ -61,7 +60,7 @@ public class Ranger : SoldierBase
                     else if(SeenObject != HomeBase)
                     {
                         SoldierBase Ally = SeenObject.GetComponent<SoldierBase>();
-                        if(Vector2.Distance(transform.position, Ally.transform.position) < 2 && Target == null)
+                        if (Vector2.Distance(transform.position, Ally.transform.position) < 2 && Target == null)
                         {
                             LookAt(transform.position + Bow.transform.right - Bow.transform.up);
                         }
@@ -94,7 +93,12 @@ public class Ranger : SoldierBase
         if (Target == null)
         {
             AttackTimer = 0;
-            BowState = 0;
+            if(BowState > 0)
+            {
+                BowParts[BowState].SetActive(false);
+                BowState = 0;
+                BowParts[BowState].SetActive(true);
+            }
             if (Vector3.Distance(transform.position, Destination) < .5f)
             {
                 rb.linearVelocity = Vector2.zero;
@@ -164,8 +168,6 @@ public class Ranger : SoldierBase
         {
             LookAt(Target.transform.position);
             BowParts[BowState].SetActive(false);
-            BowState++;
-            BowParts[BowState].SetActive(true);
             Attack();
         }
     }
@@ -201,12 +203,38 @@ public class Ranger : SoldierBase
     }
     protected override void Attack()
     {
-        Arrow.GetComponent<Arrow>().Fire(Team);
-        BowParts[BowState].SetActive(false);
-        BowState = 0;
-        BowParts[BowState].SetActive(true);
-        AttackTimer = -AttackCoolDown;
-        Destroy(Arrow, 5);
+        RaycastHit2D HitObject = Physics2D.Raycast(transform.position + Bow.transform.right / 7, Bow.transform.right, 5, UnitVision);
+        if (HitObject)
+        {
+            GameObject SeenObject = HitObject.collider.gameObject;
+            try
+            {
+                Damageable Seen = SeenObject.GetComponent<Damageable>();
+                while (Seen == null && SeenObject.transform.parent != null)
+                {
+                    SeenObject = SeenObject.transform.parent.gameObject;
+                    Seen = SeenObject.GetComponent<Damageable>();
+                }
+                //Debug.Log($"{gameObject.name} has seen {SeenObject.name}");
+                if (Seen == null)
+                {
+                    return;
+                }
+                if (Seen.Team != Team)
+                {
+                    Arrow.GetComponent<Arrow>().Fire(Team);
+                    BowParts[BowState].SetActive(false);
+                    BowState = 0;
+                    BowParts[BowState].SetActive(true);
+                    AttackTimer = -AttackCoolDown;
+                    Destroy(Arrow, 5);
+                }
+            }
+            catch (System.Exception e)
+            {
+                Debug.Log(e);
+            }
+        }
     }
     public GameObject ClosestChoice(GameObject Object1, GameObject Object2)
     {
@@ -252,24 +280,9 @@ public class Ranger : SoldierBase
     public override void TakeDamage(int Dmg)
     {
         base.TakeDamage(Dmg);
-        if(Target != EnemyStronghold)
+        if (Target != EnemyStronghold)
         {
             Destination = transform.position - Bow.transform.right;
-        }
-    }
-    //Calling help from the Cleric
-    public void CallingHelp()
-    {
-        if(gameObject.GetComponent<Damageable>().Health <= 25)
-        {
-            foreach(GameObject Soldier in HomeBase.GetComponent<Stronghold>().Soldiers)
-            {
-                if(Soldier.GetComponent<SoldierBase>().ClassType == "Cleric")
-                {
-                    Soldier.BroadcastMessage("Called", gameObject);
-                }
-            }
-            Debug.Log("Calling Help!");
         }
     }
 }
