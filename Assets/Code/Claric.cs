@@ -10,7 +10,7 @@ public class Claric : SoldierBase
     {
 
         base.Start();
-        ClassType = "claric";
+        ClassType = "Cleric";
         MoveSpeed = 2f;
         Units = HomeBase.GetComponent<Stronghold>().Soldiers;
     }

@@ -1,60 +1,116 @@
 using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.Rendering;
+using System.Collections.Generic;
 
 public class Barbarian : SoldierBase
 {
-    private GameObject Axe;
+    public GameObject Axe;
     public Barbarian Self;
-    public int WanderRange;
-    public float BarbRange;
     protected float HelpTimer;
-    public bool inHelpRange;
+    protected List<GameObject> unitsInRange = new List<GameObject>();
+
     protected override void Start()
     {
         base.Start();
-        WanderRange = 1;
-        PatrolPoint();
+
+        if (EnemyStronghold != null)
+        {
+            Target = EnemyStronghold;
+        }
+
     }
 
-    protected void Update()
+    protected void Charge()
     {
 
-        AttackTimer += Time.deltaTime;
-        if (Target == null && AttackTimer > 0)
+        if (Target == null)
         {
             AttackTimer = 0;
-        }
-        if (AttackTimer <= 0)
-        {
-            if (Vector3.Distance(transform.position, Destination) < 1)
+            if (Vector3.Distance(transform.position, Destination) < .5f)
             {
                 rb.linearVelocity = Vector2.zero;
-                PatrolPoint();
             }
             else
             {
                 LookAt(Destination);
-                rb.linearVelocity = transform.right * MoveSpeed;
+                rb.linearVelocity = Self.transform.right * MoveSpeed;
             }
         }
         else
         {
-            rb.linearVelocity = Vector2.zero;
+            Destination = Target.transform.position;
+            LookAt(Target.transform.position);
+            if (Vector2.Distance(transform.position, Destination) > 1.5f)
+            {
+                rb.linearVelocity = Self.transform.right * MoveSpeed;
+            }
+            else
+            {
+                rb.linearVelocity = Vector2.zero;
+                Attack();
+                Debug.Log($"Attacked");
+            }
         }
 
+    }
+
+    protected void Update()
+    {
+        Charge();
         HealthCheck();
 
-       
     }
 
     public void HealthCheck()
     {
-        if (Self.Health <= MaxHealth /2 && HelpTimer > 0 && inHelpRange == true)
+        if (Self.Health <= MaxHealth / 2 && HelpTimer > 0 == true)
         {
             //CallCleric(); See Below
         }
     }
+
+
+
+  /*  private void OnTriggerEnter2D(Collider2D other)
+    {
+        string cType = GetComponentInParent<ClassType>;
+        if (cType = "Cleric" || "Ranger" || "Barbarian") // Make sure units are tagged
+        {
+            unitsInRange.Add(other.gameObject);
+        }
+    }
+  */
+
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.CompareTag("Unit"))
+        {
+            unitsInRange.Remove(other.gameObject);
+        }
+    }
+
+
+
+    // Helper methods remain the same
+    protected List<GameObject> GetEnemiesInRange()
+    {
+        List<GameObject> enemies = new List<GameObject>();
+        foreach (GameObject unit in unitsInRange)
+        {
+            //var unitScript = unit.GetComponent<YourUnitScript>();
+           // if (unitScript != null && unitScript.Team != Team)
+            //{
+            //    enemies.Add(unit);
+           // }
+        }
+        return enemies;
+    }
+
+
+
+
+
 
     /* Commented Out, Unity wants to do safe mode otherwise, still WIP
     public void CallCleric()
@@ -81,33 +137,7 @@ public class Barbarian : SoldierBase
     }
     */
 
-    public void PatrolPoint() // Uses the Rangers currently, needs to be tweaked
-    {
-        WanderRange++;
-        float WandX = HomeBase.transform.position.x;
-        float WandY = HomeBase.transform.position.y;
-        int RNG = Random.Range(0, 3);
-        if (RNG == 0)
-        {
-            WandX += WanderRange / 2f;
-        }
-        else if (RNG == 1)
-        {
-            WandX -= WanderRange / 2f;
-        }
-        RNG = Random.Range(0, 3);
-        if (RNG == 0)
-        {
-            WandY += WanderRange / 2f;
-        }
-        else if (RNG == 1)
-        {
-            WandY -= WanderRange / 2f;
-        }
-        WandX = Mathf.Max(Mathf.Min(WandX, 10), -10);
-        WandY = Mathf.Max(Mathf.Min(WandY, 5), -5);
-        Destination = new Vector2(WandX, WandY);
-    }
+
     protected override void Attack()
     {
        
@@ -115,5 +145,6 @@ public class Barbarian : SoldierBase
 
     }
 }
+
 
 
