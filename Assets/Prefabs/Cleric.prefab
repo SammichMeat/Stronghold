@@ -232,7 +232,7 @@ MonoBehaviour:
   HomeBase: {fileID: 0}
   EnemyStronghold: {fileID: 0}
   Damage: 0
-  Value: 0
+  Value: 30
   AttackTimer: 0
   AttackCoolDown: 0.5
   Destination: {x: 0, y: 0, z: 0}

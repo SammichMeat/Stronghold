@@ -58,7 +58,7 @@ MonoBehaviour:
   HomeBase: {fileID: 0}
   EnemyStronghold: {fileID: 0}
   Damage: 5
-  Value: 0
+  Value: 25
   AttackTimer: 0
   AttackCoolDown: 1
   Destination: {x: 0, y: 0, z: 0}

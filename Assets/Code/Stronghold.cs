@@ -39,6 +39,12 @@ public class Stronghold : Damageable
 
     private void Awake()
     {
+        if (Team.Equals("Blue"))
+        {
+            Debug.Log("YEs");
+            PlayerControlled = true;
+            IsControllable = true;
+        }
         LoadWeightsFromMemory();
         ValidateUnitTypes();
         if (IsControllable)
@@ -132,10 +138,11 @@ public class Stronghold : Damageable
         CoinsText.text = "Player(Blue) Coins: " + Mathf.FloorToInt(Coins);
     }
 
+    
     private void ResetSpawnTimer()
     {
         spawnTimer = 0f;
-        nextSpawnTime = Random.Range(7f, 13f);
+        nextSpawnTime = Random.Range(5f, 11f);//Spawn Timer
     }
     
 
