@@ -66,7 +66,10 @@ public class Ranger : SoldierBase
                         }
                         if (Ally.ClassType.ToLower() != "cleric" && Ally.ClassType.ToLower() != "claric")
                         {
-                            Closest = ClosestChoice(Ally.Target, Closest);
+                            if(Ally.Target != EnemyStronghold)
+                            {
+                                Closest = ClosestChoice(Ally.Target, Closest);
+                            }
                             if(Ally.ClassType.ToLower() == "ranger")
                             {
                                 Ranger AllyR = SeenObject.GetComponent<Ranger>();
@@ -229,6 +232,11 @@ public class Ranger : SoldierBase
                     AttackTimer = -AttackCoolDown;
                     Destroy(Arrow, 5);
                 }
+                else
+                {
+                    Vector2 Change = (Bow.transform.right + 2 * Bow.transform.up) * .25f * MoveSpeed;
+                    rb.linearVelocity = rb.linearVelocity + Change;
+                }
             }
             catch (System.Exception e)
             {
@@ -275,7 +283,7 @@ public class Ranger : SoldierBase
     {
         float angle = AngleBetweenPoints(point, Bow.transform.position);
         Quaternion targetRotation = Quaternion.Euler(new Vector3(0f, 0f, angle));
-        Bow.transform.rotation = Quaternion.Slerp(Bow.transform.rotation, targetRotation, Time.deltaTime);
+        Bow.transform.rotation = Quaternion.Slerp(Bow.transform.rotation, targetRotation, 3 * Time.deltaTime);
     }
     public override void TakeDamage(int Dmg)
     {

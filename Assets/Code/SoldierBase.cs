@@ -15,6 +15,7 @@ public abstract class SoldierBase : Damageable
     public SpriteRenderer UnitCircle;
     public float MoveSpeed;
     protected Rigidbody2D rb;
+    public Transform LookPointer;
     protected override void Start()
     {
         base.Start();
@@ -37,10 +38,12 @@ public abstract class SoldierBase : Damageable
         if(Team == "Blue")
         {
             UnitCircle.color = Color.cyan;
+            //gameObject.layer = 6;
         }
         else if(Team == "Red")
         {
             UnitCircle.color = Color.red;
+            //gameObject.layer = 7;
         }
         rb = GetComponent<Rigidbody2D>();
     }
@@ -80,9 +83,9 @@ public abstract class SoldierBase : Damageable
     }
     protected virtual void LookAt(Vector2 point)
     {
-        float angle = AngleBetweenPoints(point, transform.position);
+        float angle = AngleBetweenPoints(point, LookPointer.transform.position);
         Quaternion targetRotation = Quaternion.Euler(new Vector3(0f, 0f, angle));
-        transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, Time.deltaTime);
+        LookPointer.transform.rotation = Quaternion.Slerp(LookPointer.transform.rotation, targetRotation, 3 * Time.deltaTime);
     }
     protected float AngleBetweenPoints(Vector2 a, Vector2 b)
     {

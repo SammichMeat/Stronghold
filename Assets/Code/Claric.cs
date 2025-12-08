@@ -4,7 +4,6 @@ using UnityEngine;
 public class Claric : SoldierBase
 {
     public List<GameObject> Units = new List<GameObject>();
-    public Transform LookPointer;
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     protected override void Start()
     {
@@ -93,12 +92,6 @@ public class Claric : SoldierBase
     public void Heal(float activeHp, int maxHP)
     {
         activeHp = maxHP;
-    }
-    protected override void LookAt(Vector2 point)
-    {
-        float angle = AngleBetweenPoints(point, LookPointer.transform.position);
-        Quaternion targetRotation = Quaternion.Euler(new Vector3(0f, 0f, angle));
-        LookPointer.transform.rotation = Quaternion.Slerp(LookPointer.transform.rotation, targetRotation, Time.deltaTime);
     }
     public void WeakestAlly()
     {
