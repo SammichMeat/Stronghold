@@ -1,119 +1,221 @@
 using UnityEditor.Animations;
 using UnityEngine;
 using UnityEngine.Rendering;
+using System.Collections.Generic;
 
 public class Barbarian : SoldierBase
 {
-    private GameObject Axe;
+    public GameObject Axe;
     public Barbarian Self;
-    public int WanderRange;
-    public float BarbRange;
-    protected float HelpTimer;
-    public bool inHelpRange;
+    protected List<GameObject> unitsInRange = new List<GameObject>();
+    public Animator anime;
+
+    [Header("Detection Settings")]
+    public CircleCollider2D detectionCollider;
+    [SerializeField] protected float detectionRange = 5f;  
+    [SerializeField] protected float attackRange = 1.5f;
+
     protected override void Start()
     {
         base.Start();
-        WanderRange = 1;
-        PatrolPoint();
+        if (EnemyStronghold != null)
+        {
+            Target = EnemyStronghold;
+            Destination = EnemyStronghold.transform.position;
+        }
+        if (detectionCollider != null)
+        {
+            {
+                detectionCollider.radius = detectionRange;
+            }
+        }
+        anime = GetComponentInChildren<Animator>();
     }
 
     protected void Update()
     {
-
+        Charge();
         AttackTimer += Time.deltaTime;
-        if (Target == null && AttackTimer > 0)
+       
+
+    }
+
+    protected void Charge()
+    {
+        
+        if (Target != null && Target != EnemyStronghold)
+        {
+            Damageable targetDamageable = Target.GetComponent<Damageable>();
+            if (targetDamageable == null)
+            {
+                Target = null;
+            }
+        }
+
+        GameObject closestEnemy = GetClosestEnemy();
+
+        if (closestEnemy != null)
+        {
+            Target = closestEnemy;
+        }
+        else if (Target == null || (Target != EnemyStronghold && Vector2.Distance(transform.position, Target.transform.position) > detectionRange))
+        {
+            Target = EnemyStronghold;
+            if (EnemyStronghold != null)
+            {
+                Destination = EnemyStronghold.transform.position;
+            }
+        }
+
+        if (Target == null)
         {
             AttackTimer = 0;
-        }
-        if (AttackTimer <= 0)
-        {
-            if (Vector3.Distance(transform.position, Destination) < 1)
+            if (EnemyStronghold != null && Destination == Vector3.zero)
+            {
+                Destination = EnemyStronghold.transform.position;
+            }
+
+            if (Vector3.Distance(transform.position, Destination) < .5f)
             {
                 rb.linearVelocity = Vector2.zero;
-                PatrolPoint();
             }
             else
             {
                 LookAt(Destination);
-                rb.linearVelocity = transform.right * MoveSpeed;
+                rb.linearVelocity = Self.transform.right * MoveSpeed;
             }
         }
         else
         {
-            rb.linearVelocity = Vector2.zero;
-        }
+            Destination = Target.transform.position;
+            LookAt(Target.transform.position);
 
-        HealthCheck();
+            float distanceToTarget = Vector2.Distance(transform.position, Destination);
 
-       
-    }
-
-    public void HealthCheck()
-    {
-        if (Self.Health <= MaxHealth /2 && HelpTimer > 0 && inHelpRange == true)
-        {
-            //CallCleric(); See Below
-        }
-    }
-
-    /* Commented Out, Unity wants to do safe mode otherwise, still WIP
-    public void CallCleric()
-    {
-
-        foreach (Damageable troops  in BarbRange)
-        {
-            GameObject cleric = troops.GetComponent<ClassType>();
-            if (ClassType != null)
+            // Chase if outside attack range
+            if (distanceToTarget > attackRange)
             {
-                if (ClassType == "Cleric"  && troops.Team == Self.Team)
-                {
-                    // Request Heal from Cleric-  & reset heal timer
-                }
-                else
-                {
-                    //Ignore them, might be kinda funny for Barbs to chase down enemy clerics if their health is low, but not exactly a good tatic 
-                }
+                rb.linearVelocity = Self.transform.right * MoveSpeed;
+            }
+            // Stop and attack if within attack range
+            else
+            {
+                rb.linearVelocity = Vector2.zero;
+                Attack();
+            }
+        }
+    }
+
+    private void OnTriggerEnter2D(Collider2D other)
+    {
+        if (other.CompareTag("Unit") || other.CompareTag("Stronghold"))
+        {
+            unitsInRange.Add(other.gameObject);
+        }
+    }
+
+    private void OnTriggerExit2D(Collider2D other)
+    {
+        if (other.CompareTag("Unit") || other.CompareTag("Stronghold"))
+        {
+            unitsInRange.Remove(other.gameObject);
+        }
+    }
+
+    protected List<GameObject> GetEnemiesInRange()
+    {
+        List<GameObject> enemies = new List<GameObject>();
+        foreach (GameObject unit in unitsInRange)
+        {
+            if (unit == null) continue;
+
+            Damageable unitScript = unit.GetComponent<Damageable>();
+            if (unitScript != null && unitScript.Team != Team)
+            {
+                enemies.Add(unit);
+            }
+        }
+        return enemies;
+    }
+
+    protected GameObject GetClosestEnemy()
+    {
+        List<GameObject> enemies = GetEnemiesInRange();
+        if (enemies.Count == 0) return null;
+
+        GameObject closest = null;
+        float closestDistance = float.MaxValue;
+
+        foreach (GameObject enemy in enemies)
+        {
+            if (enemy == null) continue;
+            if (enemy.GetComponent<Damageable>() == null) continue;
+            float distance = Vector2.Distance(transform.position, enemy.transform.position);
+            if (distance < closestDistance)
+            {
+                closestDistance = distance;
+                closest = enemy;
             }
         }
 
-
-
+        return closest;
     }
-    */
 
-    public void PatrolPoint() // Uses the Rangers currently, needs to be tweaked
-    {
-        WanderRange++;
-        float WandX = HomeBase.transform.position.x;
-        float WandY = HomeBase.transform.position.y;
-        int RNG = Random.Range(0, 3);
-        if (RNG == 0)
-        {
-            WandX += WanderRange / 2f;
-        }
-        else if (RNG == 1)
-        {
-            WandX -= WanderRange / 2f;
-        }
-        RNG = Random.Range(0, 3);
-        if (RNG == 0)
-        {
-            WandY += WanderRange / 2f;
-        }
-        else if (RNG == 1)
-        {
-            WandY -= WanderRange / 2f;
-        }
-        WandX = Mathf.Max(Mathf.Min(WandX, 10), -10);
-        WandY = Mathf.Max(Mathf.Min(WandY, 5), -5);
-        Destination = new Vector2(WandX, WandY);
-    }
     protected override void Attack()
     {
-       
-        AttackTimer = -AttackCoolDown;
+        if (AttackTimer < AttackCoolDown) return;
 
+        if (Target != null)
+        {
+            float distanceToTarget = Vector2.Distance(transform.position, Target.transform.position);
+            if (distanceToTarget > attackRange) return;
+            Damageable targetDamageable = Target.GetComponent<Damageable>();
+            if (targetDamageable != null && targetDamageable.Team != Team)
+            {
+                targetDamageable.TakeDamage(Damage);
+                AttackTimer = 0;
+                Debug.Log($"{gameObject.name} attacked {Target.name} for {Damage} damage");
+                anime.SetTrigger("Attack");
+            }
+        }
     }
+
+    public override void TakeDamage(int damage)
+    {
+        base.TakeDamage(damage); 
+    }
+
+    private void OnDrawGizmosSelected()
+    {
+
+        // Draw the attack range circle (orange)
+        Gizmos.color = new Color(1f, 0.5f, 0f); // Orange
+        Gizmos.DrawWireSphere(transform.position, attackRange);
+
+        // Draw lines to enemies in range
+        Gizmos.color = Color.red;
+        foreach (GameObject enemy in GetEnemiesInRange())
+        {
+            if (enemy != null)
+            {
+                Gizmos.DrawLine(transform.position, enemy.transform.position);
+            }
+        }
+
+        // Draw line to current target
+        if (Target != null)
+        {
+            Gizmos.color = Color.magenta;
+            Gizmos.DrawLine(transform.position, Target.transform.position);
+        }
+    }
+
+
+
 }
+
+
+
+   
 
 

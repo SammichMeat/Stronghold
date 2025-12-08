@@ -9,7 +9,7 @@ public class Claric : SoldierBase
     protected override void Start()
     {
         base.Start();
-        ClassType = "claric";
+        ClassType = "Cleric";
         MoveSpeed = 2f;
         Units = HomeBase.GetComponent<Stronghold>().Soldiers;
         Wander();
