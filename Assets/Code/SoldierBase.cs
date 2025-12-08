@@ -45,8 +45,37 @@ public abstract class SoldierBase : Damageable
         rb = GetComponent<Rigidbody2D>();
     }
     protected abstract void Attack();
+    public override void TakeDamage(int damage)
+    {
+        base.TakeDamage(damage);
+        if (Health <= MaxHealth / 3 && ClassType != "Cleric")
+        {
+            CallingHelp();
+        }
+    }
+    //Calling help from the Cleric
+    public void CallingHelp()
+    {
+        foreach (GameObject Soldier in HomeBase.GetComponent<Stronghold>().Soldiers)
+        {
+            try
+            {
+                SoldierBase SoldierCode = Soldier.GetComponent<SoldierBase>();
+                if (SoldierCode.ClassType == "Cleric")
+                {
+                    Soldier.BroadcastMessage("Called", gameObject);
+                    Debug.Log("Calling Help!");
+                }
+            }
+            catch(UnityEngine.MissingReferenceException)
+            {
+
+            }
+        }
+    }
     public override void Die()
     {
+        HomeBase.GetComponent<Stronghold>().Soldiers.Remove(gameObject);
         Destroy(gameObject);
     }
     protected virtual void LookAt(Vector2 point)
