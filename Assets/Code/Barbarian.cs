@@ -82,7 +82,7 @@ public class Barbarian : SoldierBase
             else
             {
                 LookAt(Destination);
-                rb.linearVelocity = Self.transform.right * MoveSpeed;
+                rb.linearVelocity = LookPointer.right * MoveSpeed;
             }
         }
         else
@@ -93,9 +93,14 @@ public class Barbarian : SoldierBase
             float distanceToTarget = Vector2.Distance(transform.position, Destination);
 
             // Chase if outside attack range
-            if (distanceToTarget > attackRange)
+            if (distanceToTarget < 1.25f && Target == EnemyStronghold)
             {
-                rb.linearVelocity = Self.transform.right * MoveSpeed;
+                rb.linearVelocity = Vector2.zero;
+                Attack();
+            }
+            else if (distanceToTarget > attackRange)
+            {
+                rb.linearVelocity = LookPointer.right * MoveSpeed;
             }
             // Stop and attack if within attack range
             else
@@ -168,7 +173,7 @@ public class Barbarian : SoldierBase
         if (Target != null)
         {
             float distanceToTarget = Vector2.Distance(transform.position, Target.transform.position);
-            if (distanceToTarget > attackRange) return;
+            if (distanceToTarget > attackRange && !(distanceToTarget < 1.25f && Target == EnemyStronghold)) return;
             Damageable targetDamageable = Target.GetComponent<Damageable>();
             if (targetDamageable != null && targetDamageable.Team != Team)
             {
@@ -209,8 +214,6 @@ public class Barbarian : SoldierBase
             Gizmos.DrawLine(transform.position, Target.transform.position);
         }
     }
-
-
 
 }
 
